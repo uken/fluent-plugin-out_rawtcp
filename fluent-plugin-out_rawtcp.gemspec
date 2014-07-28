@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.email         = ["lxfontes+rawtcp@gmail.com"]
   s.description   = %q{Raw tcp output plugin for Fluentd}
   s.summary       = %q{output plugin for fluentd}
-  s.homepage      = "https://github.com/lxfontes/fluent-plugin-out_rawtcp"
+  s.homepage      = "https://github.com/uken/fluent-plugin-out_rawtcp"
   s.license       = 'MIT'
 
   s.files         = `git ls-files`.split($/)
