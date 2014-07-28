@@ -14,10 +14,9 @@ $:.push File.dirname(__FILE__)
 WebMock.disable_net_connect!
 
 class TestRawTcpOutput < Test::Unit::TestCase
-  attr_accessor :index_cmds, :index_command_counts
-
   def setup
     Fluent::Test.setup
+    stub_socket
     @driver = driver('test', "<server>
                                       host 127.0.0.1
                                       port 24225
@@ -31,6 +30,20 @@ class TestRawTcpOutput < Test::Unit::TestCase
   def sample_record
     {'age' => 26, 'request_id' => '42', 'parent_id' => 'parent', 'sub' => {'field'=>{'pos'=>15}}}
   end
+
+  def stub_socket
+    server = TCPServer.new 24225
+    Thread.start do
+      loop do
+        Thread.start(server.accept) do |client|
+          while (b = client.read)
+            #puts ">> #{b}"
+          end
+          client.close
+        end
+      end
+    end
+end
 
   def test_writes_to_default_index
     100.times.each do |t|

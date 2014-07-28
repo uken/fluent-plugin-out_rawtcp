@@ -1,22 +1,6 @@
-#
-# Fluent
-#
-# Copyright (C) 2011 FURUHASHI Sadayuki
-#
-#    Licensed under the Apache License, Version 2.0 (the "License");
-#    you may not use this file except in compliance with the License.
-#    You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    See the License for the specific language governing permissions and
-#    limitations under the License.
-#
+# coding: utf-8
 module Fluent
-  class RawTcpOutput < Fluent::BufferedOutput
+  class RawTcpOutput < BufferedOutput
     Plugin.register_output('rawtcp', self)
 
     def initialize
@@ -28,14 +12,13 @@ module Fluent
     end
 
     config_param :send_timeout, :time, :default => 60
-    config_param :recover_wait, :time, :default => 10
-    config_param :hard_timeout, :time, :default => 60
+    config_param :connect_timeout, :time, :default => 5
     attr_reader :nodes
 
     def configure(conf)
       super
 
-      conf.elements.each {|e|
+      conf.elements.each do |e|
         next if e.name != "server"
 
         host = e['host']
@@ -47,10 +30,9 @@ module Fluent
           name = "#{host}:#{port}"
         end
 
-        node_conf = RawNodeConfig.new(name, host, port)
-        @nodes << Node.new(log, node_conf)
+        @nodes << RawNode.new(name, host, port)
         log.info "adding forwarding server '#{name}'", :host=>host, :port=>port
-      }
+      end
     end
 
     def start
@@ -59,6 +41,10 @@ module Fluent
 
     def shutdown
       super
+    end
+
+    def format(tag, time, record)
+      [tag, time, record].to_msgpack
     end
 
     def write(chunk)
@@ -99,42 +85,25 @@ module Fluent
     end
 
     def connect(node)
-      Timeout.timeout(5) do
+      Timeout.timeout(@connect_timeout) do
         return TCPSocket.new(node.resolved_host, node.port)
       end
     end
 
-    RawNodeConfig = Struct.new("RawNodeConfig", :name, :host, :port)
-
-    class Node
-      def initialize(log, conf)
-        @log = log
-        @conf = conf
-        @name = @conf.name
-        @host = @conf.host
-        @port = @conf.port
-
-        @resolved_host = nil
-        @resolved_time = 0
-        resolved_host  # check dns
-      end
-
-      attr_reader :conf
+    class RawNode
       attr_reader :name, :host, :port
-      attr_accessor :failure, :available
 
-      def available?
-        @available
-      end
-
-      def standby?
-        @conf.standby
+      def initialize(name, host, port)
+        @name = name
+        @host = host
+        @port = port
+        resolved_host
       end
 
       def resolved_host
         @sockaddr = Socket.pack_sockaddr_in(@port, @host)
-        port, rhost = Socket.unpack_sockaddr_in(@sockaddr)
-        return rhost
+        _, rhost = Socket.unpack_sockaddr_in(@sockaddr)
+        rhost
       end
     end
   end
