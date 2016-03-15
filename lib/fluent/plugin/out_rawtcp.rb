@@ -13,6 +13,8 @@ module Fluent
 
     config_param :send_timeout, :time, :default => 60
     config_param :connect_timeout, :time, :default => 5
+    config_param :output_type, :string, :default => "msgpack"
+    config_param :output_append_newline, :bool, :default => false
     attr_reader :nodes
 
     def configure(conf)
@@ -77,10 +79,22 @@ module Fluent
 
         chunk.msgpack_each do |tag, time, record|
           next unless record.is_a? Hash
-          sock.write([tag, time, record].to_msgpack)
+          sock.write(prepare_data_to_send(tag, time, record))
         end
       ensure
         sock.close
+      end
+    end
+
+    def prepare_data_to_send(tag, time, record)
+      if @output_type == "json"
+        new_line_suf = ""
+        if @output_append_newline
+          new_line_suf = "\n"
+        end
+        return "#{record.to_json}#{new_line_suf}"
+      else
+        return [tag, time, record].to_msgpack
       end
     end
 
