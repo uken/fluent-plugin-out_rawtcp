@@ -106,9 +106,6 @@ module Fluent
 
 	if @ssl
           ssl_context = OpenSSL::SSL::SSLContext.new()
-          # TODO implement mutual tls
-          #ssl_context.cert = OpenSSL::X509::Certificate.new(File.open("certificate.crt"))
-          #ssl_context.key = OpenSSL::PKey::RSA.new(File.open("certificate.key"))
           ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
           ssl_context.ca_file = @ssl_capath if @ssl_capath
           ssl_context.options = OpenSSL::SSL::OP_NO_SSLv2
