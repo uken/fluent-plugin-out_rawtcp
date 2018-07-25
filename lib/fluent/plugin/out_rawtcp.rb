@@ -15,6 +15,8 @@ module Fluent
     config_param :connect_timeout, :time, :default => 5
     config_param :output_type, :string, :default => "msgpack"
     config_param :output_append_newline, :bool, :default => false
+    config_param :ssl, :bool, :default => false
+    config_param :ssl_capath, :string, :default => nil
     attr_reader :nodes
 
     def configure(conf)
@@ -100,7 +102,25 @@ module Fluent
 
     def connect(node)
       Timeout.timeout(@connect_timeout) do
-        return TCPSocket.new(node.resolved_host, node.port)
+        socket = TCPSocket.open(node.resolved_host, node.port)
+
+	if @ssl
+          ssl_context = OpenSSL::SSL::SSLContext.new()
+          ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+          ssl_context.ca_file = @ssl_capath if @ssl_capath
+          ssl_context.options = OpenSSL::SSL::OP_NO_SSLv2
+          ssl_context.options |= OpenSSL::SSL::OP_NO_SSLv3
+          ssl_context.options |= OpenSSL::SSL::OP_NO_COMPRESSION
+          ssl_context.options |= OpenSSL::SSL::OP_NO_TLSv1
+          ssl_context.options |= OpenSSL::SSL::OP_NO_TLSv1_1
+          ssl_context.ciphers = "HIGH"
+          ssl_socket = OpenSSL::SSL::SSLSocket.new(socket, ssl_context)
+          ssl_socket.sync_close = true
+          ssl_socket.connect
+          socket = ssl_socket
+	end
+
+        return socket
       end
     end
 

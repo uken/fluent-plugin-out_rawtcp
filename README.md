@@ -15,6 +15,8 @@ This plugin implements a simple TCP forward, without heartbeats or any other out
       type rawtcp
       buffer_type file
       buffer_path /var/log/fluent/logcentral
+      #ssl true
+      #ssl_capath /path/file.crt
       <server>
         name log1
         host 10.0.1.165
@@ -23,6 +25,7 @@ This plugin implements a simple TCP forward, without heartbeats or any other out
     </match>
 
 Multiple `<server>` entries can be configured and logs will be sent to the first active one.
+`ssl` and `ssl_capath` can be set to use TLS channel.
 
 
 ## Acknowledgement
